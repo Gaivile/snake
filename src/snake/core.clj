@@ -1,86 +1,62 @@
 (ns snake.core
-  (:import [java.awt.event KeyEvent])
   (:require [quil.core :as q]
-            [quil.core :refer :all]
-            [quil.middleware :as m]
-            [quil.core :as q :include-macros true]))
+            [quil.middleware :as m]))
 
-
-; add two vectors
-; (v+ [1 2] [1 1]) => [2 3]
-;(def v+ (partial mapv +[1 2] [1 1]))
-
-; given a percent chance, decide if a event happens
-; (food-interval 0.5) => true
-; (food-interval 0.5) => false
-(defn food-interval [n]
-  (< (rand) n))
-
-(food-interval 0.025)
-
-; food (as set of points)
+;; define food
 (def food (atom #{}))
 
-; add a meal at random position
-(swap! food conj [(rand-int 400) (rand-int 400)])
+;; spawn food at interval 0.5 (to change to 0.025 later)
+(defn spawn-food []
+  (when (< (rand) 0.5)
+    (swap! food conj [(rand-int 500) (rand-int 500)])))
 
-; snake (as vector of points because we want to append)
-; => obviously needs a start position
-;(def snake (atom [[50 50]]))
+;; remove food when eaten
+(defn remove-food [meal]
+  (swap! food disj meal))
 
-; snake movement direction
-;(def snake-dir (atom [1 0]))
+;; define a snake
+(def snakee (atom {}))
 
-; update
-(defn update []
-  ; spawn food
-  (when (food-interval 0.025)
-    (swap! food conj [(rand-int 400) (rand-int 400)])))
-   ;;update snake
- ;; (let [new (v+ (first @snake) @snake-dir)] ; new head
-   ;; (swap! snake #(vec (cons new (pop %)))))) ; head+rest
+;; initial position for a snake
+(swap! snakee conj [250 250])
+
+;; move a snake
+(defn move [velocity]
+  (swap! snakee conj (into [] (map + (first @snakee) velocity)))
+  (if (not= (first velocity) 0)
+    (swap! snakee dissoc (first (map key @snakee)))
+    ))
 
 
-; draw
-(defn draw []
-  ; set background color to dark gray
-  (q/background 0x20)
-  ; draw food
-  (q/stroke 0x00 0xff 0xff)
-  (doseq [[x y] @food]
-    (q/fill 0x00 0xff 0xff)
-    (q/rect x y 5 5))
-  ;; draw snake
-  ;;(q/fill 255)
-  ;;(doseq [[x y] @snake] (q/rect x y 5 5))
+(defn setup []
+  (q/smooth)
+  (q/frame-rate 30)
   )
 
+(defn update [state]
+  (spawn-food)
+  (move [0 -1])
+  )
 
-; input
-(defn key-pressed []
-  (cond ; case doesn't work with the KeyEvents
-    (= (q/key-code) KeyEvent/VK_UP)
-      (reset! snake-dir [0 -1])
-    (= (q/key-code) KeyEvent/VK_DOWN)
-      (reset! snake-dir [0 1])
-    (= (q/key-code) KeyEvent/VK_LEFT)
-      (reset! snake-dir [-1 0])
-    (= (q/key-code) KeyEvent/VK_RIGHT)
-      (reset! snake-dir [1 0])))
+(defn draw [state]
+  (q/background 0 0 0)
 
-; let the snake eat food
-#_(add-watch snake :key
-  (fn [k r os ns]
-    ; any meal under snake head?
-    (let [meal (get @food (first ns))]
-      (when meal
-        (swap! food disj meal))))) ; remove from food
-        ;(swap! snake #(vec (cons meal %))))))) ; add to snake
+  (doseq [[x y] @food]
+    (q/fill 0 255 0)
+    (q/stroke 0 255 0)
+    (q/rect x y 5 5))
 
-; run
+  (doseq [[x y] @snakee]
+      (q/fill 255 0 0)
+      (q/stroke 255 0 0)
+      (q/rect x y 5 5))
+  )
+
 (q/defsketch snake
-  :title "Snaaaaaaake!"
-  :size [400 400]
-  :setup (fn [] (q/smooth) (q/no-stroke) (q/frame-rate 60))
-  :draw (fn [] (update) (draw))
-  :key-pressed key-pressed)
+  :title "Snake"
+  :size [500 500]
+  :setup setup
+  :update update
+  :draw draw
+  :features [:keep-on-top]
+  :middleware [m/fun-mode])

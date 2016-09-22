@@ -15,16 +15,37 @@
   (swap! food disj meal))
 
 ;; define a snake
-(def snakee (atom {}))
+(def snakee (atom ()))
 
 ;; initial position for a snake
-(swap! snakee conj [250 250])
+(swap! snakee conj '(250 250))
+;; define a direction to move a snake
+(def direction (atom []))
+
+;; set initial value for direction
+(swap! direction conj 1 0)
+
+
+;; wrap a snake around the board
+(defn wrap [i m]
+  (loop [x i]
+    (cond (< x 0) (recur (+ x m))
+          (>= x m) (recur (- x m))
+          :else x)))
 
 ;; move a snake
-(defn move [velocity]
-  (swap! snakee conj (into [] (map + (first @snakee) velocity)))
-  (if (not= (first velocity) 0)
-    (swap! snakee dissoc (first (map key @snakee)))
+(defn move []
+  (let [new-values (for [[x y] @snakee]
+                    (map + [(wrap x 500) (wrap y 500)] @direction))]
+    (reset! snakee new-values)))
+
+;; change direction for the snake to move
+(defn turn [state event]
+  (case (:key event)
+    (:w :up) (if (not= [0 1] @direction) (reset! direction [0 -1])  @direction)
+    (:s :down) (if (not= [0 -1] @direction) (reset! direction [0 1])  @direction)
+    (:a :left) (if (not= [1 0] @direction) (reset! direction [-1 0])  @direction)
+    (:d :right) (if (not= [-1 0] @direction) (reset! direction [1 0])  @direction)
     ))
 
 
@@ -35,7 +56,7 @@
 
 (defn update [state]
   (spawn-food)
-  (move [0 -1])
+  (move)
   )
 
 (defn draw [state]
@@ -58,5 +79,6 @@
   :setup setup
   :update update
   :draw draw
+  :key-pressed turn
   :features [:keep-on-top]
   :middleware [m/fun-mode])

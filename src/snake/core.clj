@@ -9,9 +9,9 @@
 (def food (atom #{}))
 
 (defn spawn-food
-  "Spawn food at interval 0.5 (to change to 0.025 later)"
+  "Spawn food at interval 0.5"
   []
-  (when (< (rand) 0.5)
+  (when (< (rand) 0.025)
     (swap! food conj [(rand-int (world :width)) (rand-int (world :width))])))
 
 ;; define a snake
@@ -20,8 +20,7 @@
 (defn remove-food
   "Remove food when eaten"
   []
-  (swap! food disj (first @snakee))
-  )
+  (swap! food disj (first @snakee)))
 
 ;; initial position for a snake
 (swap! snakee conj [50 50])
@@ -47,8 +46,7 @@
     (:w :up) (if (not= [0 1] @direction) (reset! direction [0 -1])  @direction)
     (:s :down) (if (not= [0 -1] @direction) (reset! direction [0 1])  @direction)
     (:a :left) (if (not= [1 0] @direction) (reset! direction [-1 0])  @direction)
-    (:d :right) (if (not= [-1 0] @direction) (reset! direction [1 0])  @direction)
-    ))
+    (:d :right) (if (not= [-1 0] @direction) (reset! direction [1 0])  @direction)))
 
 (defn move
   "Move a snake"
@@ -73,17 +71,27 @@
   []
   (str "Score: " (count @snakee)))
 
+;; colour to paint a snake
+(def colour (atom '(255 13 169)))
+
+(defn paint-a-snake
+  "Create a fancy colour for the snake"
+  []
+  (let [x (rand-int 255)
+        y (rand-int 255)
+        z (rand-int 255)]
+    (reset! colour (into '() [x y z]))))
+
 (defn setup []
   (q/smooth)
-  (q/frame-rate 20)
-  )
+  (q/frame-rate 15))
 
 (defn update [state]
   (spawn-food)
   (move)
   (reset)
   (score)
-  )
+  (paint-a-snake))
 
 (defn draw [state]
   (let [w (/ (q/width) (world :width))
@@ -91,16 +99,18 @@
     (q/background 0 0 0)
 
     (doseq [[x y] @food]
-      (q/fill 0 255 0)
-      (q/stroke 0 255 0)
+      (q/fill (- 255 x) (+ x y 100) (- 255 y))
+      (q/stroke (rand-int 255) (rand-int 255) (- 255 y))
       (q/rect (* w x) (* h y) w h))
 
     (doseq [[x y] @snakee]
-        (q/fill 255 0 0)
-        (q/stroke 255 0 0)
+        (q/fill (first @colour) (second @colour) (last @colour))
+        (q/stroke (first @colour) (second @colour) (last @colour))
         (q/rect (* w x) (* h y) w h)))
-  (q/fill 0 255 255)
-  (q/text (score) 10 15))
+
+  (q/fill 100 255 100)
+  (q/text-size 20)
+  (q/text (score) 10 30 ))
 
 (q/defsketch snake
   :title "Snake"

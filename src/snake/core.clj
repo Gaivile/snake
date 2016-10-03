@@ -59,8 +59,19 @@
       (do
         (remove-food)
         (swap! snakee conj new-values))
-      (reset! snakee (drop-last 1 (conj @snakee new-values)))))
-      )
+      (reset! snakee (drop-last 1 (conj @snakee new-values))))))
+
+(defn reset
+  "Reset a snake if it touches itself"
+  []
+  (if (apply distinct? @snakee)
+    @snakee
+    (reset! snakee (into [] (take 1 @snakee)))))
+
+(defn score
+  "Show score"
+  []
+  (str "Score: " (count @snakee)))
 
 (defn setup []
   (q/smooth)
@@ -70,6 +81,8 @@
 (defn update [state]
   (spawn-food)
   (move)
+  (reset)
+  (score)
   )
 
 (defn draw [state]
@@ -85,8 +98,9 @@
     (doseq [[x y] @snakee]
         (q/fill 255 0 0)
         (q/stroke 255 0 0)
-        (q/rect (* w x) (* h y) w h))
-  ))
+        (q/rect (* w x) (* h y) w h)))
+  (q/fill 0 255 255)
+  (q/text (score) 10 15))
 
 (q/defsketch snake
   :title "Snake"

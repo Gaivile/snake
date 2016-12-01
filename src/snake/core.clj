@@ -11,7 +11,7 @@
 (defn spawn-food
   "Spawn food at interval 0.5"
   []
-  (when (< (rand) 0.025)
+  (when (< (rand) 0.5)
     (swap! food conj [(rand-int (world :width)) (rand-int (world :width))])))
 
 ;; define a snake
@@ -48,17 +48,6 @@
     (:a :left) (if (not= [1 0] @direction) (reset! direction [-1 0])  @direction)
     (:d :right) (if (not= [-1 0] @direction) (reset! direction [1 0])  @direction)))
 
-(defn move
-  "Move a snake"
-  []
-  (let [new-values (into []
-       (map + [(wrap (first (first @snakee)) (world :width)) (wrap (second (first @snakee)) (world :height))] @direction))]
-    (if (contains? @food (first @snakee))
-      (do
-        (remove-food)
-        (swap! snakee conj new-values))
-      (reset! snakee (drop-last 1 (conj @snakee new-values))))))
-
 (defn reset
   "Reset a snake if it touches itself"
   []
@@ -71,16 +60,28 @@
   []
   (str "Score: " (count @snakee)))
 
-;; colour to paint a snake
+;; colour to paint the food
 (def colour (atom '(255 13 169)))
 
-(defn paint-a-snake
+(defn paint-food
   "Create a fancy colour for the snake"
   []
   (let [x (rand-int 255)
         y (rand-int 255)
         z (rand-int 255)]
     (reset! colour (into '() [x y z]))))
+
+(defn move
+  "Move a snake"
+  []
+  (let [new-values (into []
+       (map + [(wrap (first (first @snakee)) (world :width)) (wrap (second (first @snakee)) (world :height))] @direction))]
+    (if (contains? @food (first @snakee))
+      (do
+        (remove-food)
+        (paint-food)
+        (swap! snakee conj new-values))
+      (reset! snakee (drop-last 1 (conj @snakee new-values))))))
 
 (defn setup []
   (q/smooth)
@@ -90,8 +91,7 @@
   (spawn-food)
   (move)
   (reset)
-  (score)
-  (paint-a-snake))
+  (score))
 
 (defn draw [state]
   (let [w (/ (q/width) (world :width))
@@ -99,13 +99,13 @@
     (q/background 0 0 0)
 
     (doseq [[x y] @food]
-      (q/fill (- 255 x) (+ x y 100) (- 255 y))
-      (q/stroke (rand-int 255) (rand-int 255) (- 255 y))
+      (q/fill (first @colour) (second @colour) (last @colour))
+      (q/stroke (first @colour) (second @colour) (last @colour))
       (q/rect (* w x) (* h y) w h))
 
     (doseq [[x y] @snakee]
-        (q/fill (first @colour) (second @colour) (last @colour))
-        (q/stroke (first @colour) (second @colour) (last @colour))
+        (q/fill (rand-int 255) (rand-int 255) (rand-int 255))
+        (q/stroke (rand-int 255) (rand-int 255) (rand-int 255))
         (q/rect (* w x) (* h y) w h)))
 
   (q/fill 100 255 100)
@@ -114,7 +114,7 @@
 
 (q/defsketch snake
   :title "Snake"
-  :size [500 500]
+  :size [700 700]
   :setup setup
   :update update
   :draw draw
